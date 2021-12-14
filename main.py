@@ -1,7 +1,9 @@
+import os;
 import serial;
 from datetime import date, datetime;
 
-
+# If data folder does not exist, create it
+os.makedirs("data", exist_ok=True)
 
 arduino_port = "/dev/ttyUSB0"
 baud = 9600
