@@ -1,0 +1,27 @@
+{
+  "name": "indoorweatherstation",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "start": "ts-node index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lassi-Koykka/IndoorsWeatherStation.git"
+  },
+  "author": "Lassi Köykkä",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Lassi-Koykka/IndoorsWeatherStation/issues"
+  },
+  "homepage": "https://github.com/Lassi-Koykka/IndoorsWeatherStation#readme",
+  "devDependencies": {
+    "@tsconfig/recommended": "^1.0.1"
+  },
+  "dependencies": {
+    "@types/serialport": "^8.0.2",
+    "serialport": "^9.2.8"
+  }
+}
