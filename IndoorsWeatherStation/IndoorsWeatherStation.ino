@@ -10,12 +10,14 @@
 #define DHTTYPE DHT11
 
 
-long printInterval = 60000;
+long printInterval = 10000;
 long lastPrintTime = 0;
 
 DHT dht(DHTPIN, DHTTYPE);
 float hOld = 0;
 float tOld = 0;
+
+String lastPrintString = "";
 
 float minTemp = 20.5;
 float maxTemp = 23.5;
@@ -23,6 +25,9 @@ float maxTemp = 23.5;
 float minTempOld = minTemp;
 float maxTempOld = maxTemp;
 
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+int backlight = 1;
 
 byte arrowUpChar[8] = {
   B11111111,
@@ -46,7 +51,6 @@ byte arrowDownChar[8] = {
   B11111111,
 };
 
-LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 int maxUpButtonPressed = 0;
 int maxDownButtonPressed = 0;
@@ -127,9 +131,9 @@ void loop() {
   if (Serial.available() > 2) {
 
     // FIRST BYTE
-    uint8_t backlight = Serial.read();
+    backlight = Serial.read() > 0;
 
-    if (backlight > 0)
+    if (backlight)
       lcd.backlight();
     else
       lcd.noBacklight();
@@ -181,8 +185,10 @@ void loop() {
   long currTime = millis();
 
   // Print if first print or value has changed
-  if (lastPrintTime == 0 || (currTime - lastPrintTime > printInterval && (tOld != tOld || h != hOld)) || (maxTemp != maxTempOld || minTemp != minTempOld)) {
-    Serial.println(String(t) + ";" + String(h) + ";" + String(hic) + ";" + String(minTemp) + ";" + String(maxTemp));
+  String newPrintString = String(t) + ";" + String(h) + ";" + String(hic) + ";" + String(minTemp) + ";" + String(maxTemp) + ";" + backlight;
+  if (lastPrintTime == 0 || (currTime - lastPrintTime > printInterval && newPrintString != lastPrintString)) {
+    lastPrintString = newPrintString;
+    Serial.println(newPrintString);
 
     lastPrintTime = millis();
   }
