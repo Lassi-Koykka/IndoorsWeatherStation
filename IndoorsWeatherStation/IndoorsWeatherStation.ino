@@ -20,7 +20,7 @@ float tOld = 0;
 String lastPrintString = "";
 
 float minTemp = 20.5;
-float maxTemp = 23.5;
+float maxTemp = 24.0;
 
 float minTempOld = minTemp;
 float maxTempOld = maxTemp;
@@ -128,7 +128,7 @@ void loop() {
 
 
   // Read serial data
-  if (Serial.available() > 2) {
+  if (Serial.available() > 4) {
 
     // FIRST BYTE
     backlight = Serial.read() > 0;
@@ -139,12 +139,20 @@ void loop() {
       lcd.noBacklight();
 
 
-    // SECOND BYTE
-    uint8_t minByte = Serial.read();
+    // SECOND AND THIRD BYTE
+    uint8_t secondByte = Serial.read();
+    int16_t minByte = Serial.read();
+    if(secondByte != 0) {
+      minByte = minByte | secondByte << 8;
+    }
     float newMinTemp = (float)minByte / 10;
 
-    // THIRD BYTE
-    uint8_t maxByte = Serial.read();
+    // FOURTH AND FIFTH BYTE
+    uint8_t fourthByte = Serial.read();
+    uint16_t maxByte = Serial.read();
+    if(fourthByte != 0) {
+      maxByte = maxByte | fourthByte << 8;
+    } 
     float newMaxTemp = (float)maxByte / 10;
 
     // Serial.print("Backlight byte: ");

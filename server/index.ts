@@ -1,11 +1,14 @@
-import SerialPort from "serialport";
-import { createServer } from "http";
-import { Buffer } from 'buffer';
-import { Server, Socket } from "socket.io";
-import { createInterface } from "readline";
-import ObjectsToCsv from "objects-to-csv";
 import fs from "fs"
 import path from "path"
+import { Buffer } from 'buffer';
+import { createInterface } from "readline";
+import ObjectsToCsv from "objects-to-csv";
+import SerialPort from "serialport";
+import { Server, Socket } from "socket.io";
+import { createServer } from "http";
+import express from "express";
+const app = express();
+
 
 interface IData {
     timestamp: number;
@@ -34,7 +37,17 @@ let latestData: IData = {
 }
 
 
-const httpServer = createServer();
+const httpServer = createServer(app);
+
+app.use('/data', express.static(path.join(__dirname,"data")));
+app.get("/data", (req, res) => {
+    let html = "<h1>Files:</h1><ul>"
+    const filesInDir = fs.readdirSync(path.join(__dirname,"data"))
+    filesInDir.forEach(f => html += `<li> <a href="/data/${f}">${f}</a> </li>`)
+    html += "</ul>"
+    return res.type("html").send(html)
+})
+
 const dataDirPath = path.join(__dirname, "data")
 if(!fs.existsSync(dataDirPath))
     fs.mkdirSync(dataDirPath)
@@ -53,14 +66,21 @@ io.on("connection", (socket: Socket) => {
         console.log("Updating settings")
         let buf = Buffer.from([
             Number(settings.backlightOn), 
-            Math.round(settings.minTemperature * 10),
-            Math.round(settings.maxTemperature * 10),
+            ...tempIntoBytes(settings.minTemperature),
+            ...tempIntoBytes(settings.maxTemperature),
         ]);
     
         port.write(buf);
     })
     
 });
+
+const tempIntoBytes = (x: number) => {
+    const num = Math.round(x * 10)
+    let buf = Buffer.alloc(2)
+    buf.writeUInt16BE(num, 0)
+    return buf
+} 
 
 
 const port = new SerialPort('/dev/ttyUSB0', { baudRate: 9600 })
@@ -82,6 +102,8 @@ lineReader.on("line", (line) => {
     const timestamp = Math.round(date.getTime() / 1000);
     
     const values = line.split(";").map(s => !!Number(s) ? Number(s) : -1)
+
+    if(values.length < 6) return
 
     const dataObject: IData = {
         timestamp: timestamp,

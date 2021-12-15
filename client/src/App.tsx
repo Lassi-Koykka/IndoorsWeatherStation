@@ -41,14 +41,15 @@ const initialValues: IData = {
   backlightOn: true
 }
 
+const areEqual = (o1: { [key: string]: any }, o2: { [key: string]: any }) => {
+  return !Object.entries(o1).some(([key, value]) => value !== o2[key])
+}
 
 function App() {
   const [data, setData] = useState<IData>(initialValues);
   const [settings, setSettings] = useState<ISettings>();
   const [socket, setSocket] = useState<Socket>();
-  const areEqual = (o1: { [key: string]: any }, o2: { [key: string]: any }) => {
-    return !Object.entries(o1).some(([key, value]) => value !== o2[key])
-  }
+  
 
   useEffect(() => {
     setSocket(io(url));
@@ -58,18 +59,21 @@ function App() {
     if(socket) {
       socket.on("connect", () => { console.log("Connected! Socket id:", socket.id); });
       socket.on("disconnect", () => { console.log("Disconnected!"); });
-      socket.on("data", (data: IData) => {
+      socket.on("data", (newData: IData) => {
         console.log("Setting data");
-        setData(data);
-        if (settings == undefined) {
-          setSettings({ backlightOn: data.backlightOn, minTemperature: data.minTemperature, maxTemperature: data.maxTemperature })
-        }
+        setData(newData);
       });
     }
   }, [socket])
 
+  useEffect(() => {
+    if (settings === undefined && !areEqual(data, initialValues)) {
+      setSettings({ backlightOn: data.backlightOn, minTemperature: data.minTemperature, maxTemperature: data.maxTemperature })
+    }
+  }, [data])
+
   const handleSubmit = () => {
-    if (socket && settings) {
+    if (socket && settings && settings.minTemperature < settings.maxTemperature) {
       console.log("Updating settings")
       socket.emit("updateSettings", settings)
     }
@@ -97,7 +101,7 @@ function App() {
                 </tr>
                 <tr>
                   <th style={{ textAlign: "start" }}>Temperature index:</th>
-                  <th style={{ textAlign: "end" }}>{data.heatIndex}</th>
+                  <th style={{ textAlign: "end" }}>{data.heatIndex.toFixed(1)}</th>
                 </tr>
                 <tr>
                   <th style={{ textAlign: "start" }}>Max temperature:</th>
@@ -117,20 +121,26 @@ function App() {
                     <tr>
                       <th style={{ textAlign: "start", width: "50%" }}>Max temp:</th>
                       <th style={{ textAlign: "end" }}>
-                        <input required type="number" style={textfieldStyles} value={settings.maxTemperature} onChange={(e) => !!Number(e.target.value) && Number(e.target.value) > settings.minTemperature && setSettings({ ...settings, maxTemperature: Number(e.target.value) })} />
+                        <input required type="number" style={textfieldStyles} value={settings.maxTemperature || ""} placeholder='0' onChange={(e) => !!Number(e.target.value) && setSettings({ ...settings, maxTemperature: Math.round(Number(e.target.value) * 10) / 10 })} />
                       </th>
                       <th>°C</th>
                     </tr>
                     <tr>
                       <th style={{ textAlign: "start", width: "50%" }}>Min temp:</th>
                       <th style={{ textAlign: "end" }}>
-                        <input required type="number" style={textfieldStyles} value={settings.minTemperature} onChange={(e) => !!Number(e.target.value) && Number(e.target.value) < settings.maxTemperature && setSettings({ ...settings, minTemperature: Number(e.target.value) })} />
+                        <input required type="number" style={textfieldStyles} value={settings.minTemperature || ""} placeholder='0' onChange={(e) => !!Number(e.target.value) && setSettings({ ...settings, minTemperature: Math.round(Number(e.target.value) * 10) / 10 })} />
                       </th>
                       <th>°C</th>
                     </tr>
                   </table>
                   <p>Display backlight on <Checkbox style={{ height: "auto", color: "white" }} checked={settings.backlightOn} onChange={(e, checked) => setSettings({...settings, backlightOn: checked})} /></p>
-                  <Button onClick={() => handleSubmit()} size="large" variant="contained" style={{fontFamily: "inherit", fontWeight: "bold"}} >Update Settings</Button>
+                  <Button 
+                  disabled={!(settings.minTemperature < settings.maxTemperature)}
+                  onClick={() => handleSubmit()} 
+                  size="large" variant="contained" 
+                  style={{fontFamily: "inherit", fontWeight: "bold"}} >
+                    {(settings.minTemperature < settings.maxTemperature) ? "Update Settings" : "Min temp must be less than max"}
+                  </Button>
                 </>
               }
             </>
